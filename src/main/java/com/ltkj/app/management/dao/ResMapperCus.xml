@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ltkj.app.management.dao.ResMapperCus">
+	
+	<!-- 获取资源Tree信息 -->
+	<select id="selectResourcesTree" resultType="ResTree">
+		  SELECT 
+			RES.ID 		    									AS ID,
+			RES.RES_NAME           								AS NAME,
+			RES.PARENT_ID           							AS PID,
+			RES.RES_TYPE										AS RESTYPE,
+			RES.COMMENTS										AS COMMENTS,
+			RES.RES_ICON										AS RESICON,
+			RES.RES_URL											AS RESURL,
+			RES.RES_LEVEL										AS RESLEVEL,
+			RES.IS_HIDDEN										AS ISHIDDEN,
+			RES.CREATE_TIME										AS CREATETIME,
+			RES.CREATE_USER										AS CREATEUSER,
+			RES.UPDATE_TIME										AS UPDATETIME,
+			RES.UPDATE_USER										AS UPDATEUSER,
+			RES.RES_FID											AS RESFID,
+			RES.RES_FNAME										AS RESFNAME,
+			RES2.RES_NAME										AS PARENTNAME,
+			CASE WHEN RES.RES_TYPE='2' or RES.RES_TYPE='1' THEN 'FALSE'
+			END AS OPEN
+		 FROM SYS_RESOURCES AS RES
+		 LEFT JOIN SYS_RESOURCES AS RES2 ON RES2.ID = RES.PARENT_ID AND RES2.IS_REMOVE = '1'
+		 WHERE RES.IS_REMOVE = '1'
+		 ORDER BY RES.RES_TYPE,RES.RES_LEVEL
+	</select>
+	
+	<!--  获取主键ID -->
+	<select id="getUUID" resultType="String">
+		SELECT UUID()
+	</select>
+	
+	<!-- 查询同级的个数 -->
+	<select id="getChildCountByParentId" resultType="Integer" parameterType="String">
+		 SELECT 
+			COUNT(1)
+		 FROM SYS_RESOURCES 
+		 WHERE PARENT_ID = #{parentId}
+	</select>
+	
+	<!-- 删除资源 -->
+	<delete id="removeResourcesByResId" parameterType="String">
+		 DELETE from SYS_RESOURCES
+		 WHERE RES_FID LIKE CONCAT('%',#{resFid},'%')
+	</delete>
+		
+</mapper>

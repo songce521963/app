@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ltkj.app.test.dao.TUserMapper">
+	
+	<!-- 查询部署流程定义 -->
+	<select id="selectUserList" resultType="TUserCus" parameterType="TUserCus">
+		SELECT 
+			TU.UUID             AS UUID,
+			TU.U_NAME           AS UNAME,
+			TU.U_PASSWORD       AS UPASSWORD,
+			TU.U_SEX            AS USEX,
+			TU.U_AGE            AS UAGE,
+			TU.U_CLASS          AS UCLASS,
+			TU.VERSION			AS VERSION
+		FROM 
+		T_USER AS TU
+		<where>
+			<if test=" search!=null and search !='undefined' ">
+				(
+					TU.U_NAME LIKE CONCAT('%',#{search},'%') OR 
+					TU.U_PASSWORD LIKE CONCAT('%',#{search},'%') OR
+					TU.U_SEX LIKE CONCAT('%',#{search},'%') OR 
+					TU.U_AGE LIKE CONCAT('%',#{search},'%')
+				)
+			</if>
+		</where>
+	</select>
+	
+	<!-- 添加人员信息 -->
+	<insert id="insertUserInfo" parameterType="TUserCus">
+		INSERT INTO T_USER(U_NAME,U_PASSWORD,U_SEX,U_AGE,U_CLASS)
+		VALUES (#{uName},#{uPassword},#{uSex},#{uAge},#{uClass})
+	</insert>
+	
+	<!-- 查询部署流程定义 -->
+	<select id="selectUser" resultType="TUserCus" parameterType="TUserCus">
+		SELECT 
+			TU.ID               AS ID,
+			TU.U_NAME           AS NAME,
+			TU.U_PASSWORD       AS PASSWORD,
+			TU.U_SEX            AS SEX,
+			TU.U_AGE            AS AGE,
+			TU.U_CLASS          AS UCLASS			
+		FROM 
+		T_USER AS TU
+		WHERE TU.ID = #{id}
+	</select>
+	
+	<update id="updateUserInfo" parameterType="TUserCus">
+		UPDATE T_USER SET U_NAME=#{name},U_PASSWORD=#{password},
+			U_SEX=#{sex},U_AGE=#{age},U_CLASS=#{uClass}
+			WHERE ID=#{id}
+	</update>
+	
+	<delete id="deleteUserByIds" parameterType="java.util.List">	
+		DELETE FROM T_USER 
+		WHERE ID IN  
+		 <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+		 	#{item}
+		 </foreach>
+	</delete>
+</mapper>

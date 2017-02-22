@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ltkj.app.common.dao.CommonMapper">
+
+	<!-- 判断用户是否存在 -->
+	<select id="selectUserByUserCode" resultType="UserCus" parameterType="String">
+		SELECT 
+			ID 					AS ID,
+			CASE 
+				WHEN USER_CODE IS NULL THEN EMAIL              	-- 邮箱登录
+				ELSE USER_CODE 										-- 否则是userCode登录
+			END AS USERCODE,
+			USER_PASSWORD       AS USERPASSWORD,
+			ORG_ID              AS ORGID,
+			ORG_ID              AS COMPANYID,
+			ORG_NAME			AS ORGNAME,
+			USER_FID       		AS USERFID,
+			USER_NAME       	AS USERNAME,
+			IS_SYSTEM           AS ISSYSTEM,
+			EMAIL				AS EMAIL
+		FROM SYS_USER
+		WHERE IS_REMOVE='1' AND (
+			USER_CODE = #{userCode} OR
+			EMAIL 	  = #{userCode}
+		)
+	</select>
+	
+  	<resultMap type="MenuVo" id="menuMap">
+		<id column="RESID" property="resId"/>
+		<result column="RESNAME" property="resName"/>
+		<result column="RESURL" property="resUrl"/>
+		<result column="RESICON" property="resIcon"/>
+		<!-- 一对多的关系 -->
+		<!-- property: 指的是集合属性的值, ofType：指的是集合中元素的类型 -->
+		<collection property="child" ofType="MenuVo">
+			<id column="CRESID" property="resId"/>
+			<result column="CRESNAME" property="resName"/>
+			<result column="CRESURL" property="resUrl"/>
+			<result column="CRESICON" property="resIcon"/>
+		</collection>
+	</resultMap>
+	
+	<!-- 获取菜单信息 -->
+	<select id="selectMenuList" resultMap="menuMap" parameterType="Map">
+		SELECT 
+			RES.RESID,
+			RES.RESNAME,
+			RES.RESURL,
+			RES.RESICON,
+			RCH.RESID 		    									AS CRESID,
+			RCH.RESNAME										  		AS CRESNAME,
+			RCH.RESURL           									AS CRESURL,
+			RCH.RESICON           									AS CRESICON
+		FROM (
+			SELECT DISTINCT
+					RES.RESID,
+					RES.RESNAME,
+					RES.RESURL,
+					RES.RESICON,
+					RES.PARENTID,
+					RES.RESTYPE,
+					RES.RESLEVEL
+			FROM (
+				SELECT 
+						RES.ID 		    										AS RESID,
+						RES.RES_NAME 		    								AS RESNAME,
+						RES.RES_URL           									AS RESURL,
+						RES.RES_ICON           									AS RESICON,
+						RES.PARENT_ID											AS PARENTID,
+						RES.RES_TYPE											AS RESTYPE,
+						RES.RES_LEVEL											AS RESLEVEL
+					 FROM SYS_RESOURCES AS RES
+					 WHERE RES.IS_REMOVE = '1' AND RES.IS_HIDDEN = '1'
+					 AND RES.RES_TYPE ='1'
+			) AS RES
+			INNER JOIN SYS_ROLE_RES AS RR ON RR.RES_ID = RES.RESID
+			INNER JOIN (
+				SELECT
+					ROLE.ROLEID,
+					ROLE.ROLENAME,
+					ROLE.ROLEKEY
+					FROM (
+						SELECT 
+							ROLE.ID						AS ROLEID,
+							ROLE.ROLE_NAME				AS ROLENAME,
+							ROLE.ROLE_KEY				AS ROLEKEY
+						FROM (
+								SELECT 
+									ORG.ID,
+									ORG.ORG_NAME,
+									ORG.ORG_FID,
+									ORG.ORG_FNAME,
+									ORG.ORG_TYPE,
+									ORG.ORG_LEVEL
+								 FROM SYS_ORG AS ORG
+								 WHERE ORG.ID IN 
+								 <foreach collection="ids" index="index" item="item" open="(" separator="," close=")">
+								 	#{item}
+								 </foreach>
+						) AS PT
+						INNER JOIN SYS_USER_ROLE AS UR ON UR.USER_ID = PT.ID
+						INNER JOIN SYS_ROLE AS ROLE ON ROLE.ID = UR.ROLE_ID
+						LEFT JOIN SYS_NOT_INH AS INH ON INH.USER_ROLE_ID = UR.ID
+						WHERE INH.ID IS NULL
+						UNION
+						SELECT 
+								ROLE.ID										AS ROLEID,
+								ROLE.ROLE_NAME								AS ROLENAME,
+								ROLE.ROLE_KEY								AS ROLEKEY
+						 FROM SYS_USER_ROLE AS UR
+						 INNER JOIN SYS_ROLE AS ROLE ON ROLE.ID = UR.ROLE_ID
+						 WHERE UR.USER_ID = #{id}
+					) AS ROLE
+			) AS ROLE ON ROLE.ROLEID = RR.ROLE_ID
+		) AS RES
+		LEFT JOIN (
+			SELECT DISTINCT
+					RES.RESID,
+					RES.RESNAME,
+					RES.RESURL,
+					RES.RESICON,
+					RES.PARENTID,
+					RES.RESTYPE,
+					RES.RESLEVEL
+			FROM (
+				SELECT 
+						RES.ID 		    									AS RESID,
+						RES.RES_NAME 		    							AS RESNAME,
+						RES.RES_URL           								AS RESURL,
+						RES.RES_ICON           								AS RESICON,
+						RES.PARENT_ID											AS PARENTID,
+						RES.RES_TYPE											AS RESTYPE,
+						RES.RES_LEVEL											AS RESLEVEL
+					 FROM SYS_RESOURCES AS RES
+					 WHERE RES.IS_REMOVE = '1' AND RES.IS_HIDDEN = '1'
+					 AND RES.RES_TYPE ='2'
+			) AS RES
+			INNER JOIN SYS_ROLE_RES AS RR ON RR.RES_ID = RES.RESID
+			INNER JOIN (
+				SELECT
+					ROLE.ROLEID,
+					ROLE.ROLENAME,
+					ROLE.ROLEKEY
+					FROM (
+						SELECT 
+							ROLE.ID						AS ROLEID,
+							ROLE.ROLE_NAME				AS ROLENAME,
+							ROLE.ROLE_KEY				AS ROLEKEY
+						FROM (
+								SELECT 
+									ORG.ID,
+									ORG.ORG_NAME,
+									ORG.ORG_FID,
+									ORG.ORG_FNAME,
+									ORG.ORG_TYPE,
+									ORG.ORG_LEVEL
+								 FROM SYS_ORG AS ORG
+								 WHERE ORG.ID IN 
+								 <foreach collection="ids" index="index" item="item" open="(" separator="," close=")">
+								 	#{item}
+								 </foreach>
+						) AS PT
+						INNER JOIN SYS_USER_ROLE AS UR ON UR.USER_ID = PT.ID
+						INNER JOIN SYS_ROLE AS ROLE ON ROLE.ID = UR.ROLE_ID
+						LEFT JOIN SYS_NOT_INH AS INH ON INH.USER_ROLE_ID = UR.ID
+						WHERE INH.ID IS NULL
+						UNION
+						SELECT 
+								ROLE.ID										AS ROLEID,
+								ROLE.ROLE_NAME								AS ROLENAME,
+								ROLE.ROLE_KEY								AS ROLEKEY
+						 FROM SYS_USER_ROLE AS UR
+						 INNER JOIN SYS_ROLE AS ROLE ON ROLE.ID = UR.ROLE_ID
+						 WHERE UR.USER_ID =#{id}
+					) AS ROLE
+			) AS ROLE ON ROLE.ROLEID = RR.ROLE_ID
+		) AS RCH ON RCH.PARENTID = RES.RESID
+		ORDER BY RES.RESLEVEL,RCH.RESLEVEL
+	</select>
+	
+	<!-- 获取所有菜单信息-->
+	<select id="selectMenuListAll" resultMap="menuMap">
+		 SELECT
+			RES.ID 		    									AS RESID,
+			RES.RES_NAME 		    							AS RESNAME,
+			RES.RES_URL           								AS RESURL,
+			RES.RES_ICON           								AS RESICON,
+			RCH.ID 		    									AS CRESID,
+			RCH.RES_NAME										AS CRESNAME,
+			RCH.RES_URL           								AS CRESURL,
+			RCH.RES_ICON           								AS CRESICON
+		 FROM SYS_RESOURCES AS RES
+		 LEFT JOIN SYS_RESOURCES AS RCH ON RCH.PARENT_ID = RES.ID
+		 WHERE RES.IS_REMOVE = '1' AND RES.IS_HIDDEN = '1'
+		 AND RES.RES_TYPE = '1'
+		 ORDER BY RES.RES_LEVEL,RCH.RES_LEVEL
+	</select>
+	
+	<!-- 根据用户Id获取该用户的权限-->
+	<select id="selectResourcesAll" resultType="ResCus">
+		SELECT 
+			ID              AS ID,
+			RES_URL         AS RESURL,
+			RES_ICON        AS RESICON
+		FROM SYS_RESOURCES
+	</select>
+	
+		<!-- 根据用户Id获取该用户的权限-->
+	<select id="getUserRoleByUserId" parameterType="Map" resultType="RoleCus">
+		SELECT 
+			ROLE.ID						AS ROLEID,
+			ROLE.ROLE_NAME				AS ROLENAME,
+			ROLE.ROLE_KEY				AS ROLEKEY
+		FROM (
+				SELECT 
+					ORG.ID,
+					ORG.ORG_NAME,
+					ORG.ORG_FID,
+					ORG.ORG_FNAME,
+					ORG.ORG_TYPE,
+					ORG.ORG_LEVEL
+				 FROM SYS_ORG AS ORG
+				 WHERE ORG.ID IN 
+				 <foreach collection="ids" index="index" item="item" open="(" separator="," close=")">
+				 	#{item}
+				 </foreach>
+		) AS PT
+		INNER JOIN SYS_USER_ROLE AS UR ON UR.USER_ID = PT.ID
+		INNER JOIN SYS_ROLE AS ROLE ON ROLE.ID = UR.ROLE_ID
+		LEFT JOIN SYS_NOT_INH AS INH ON INH.USER_ROLE_ID = UR.ID
+		WHERE INH.ID IS NULL
+		UNION
+		SELECT 
+				ROLE.ID										AS ROLEID,
+				ROLE.ROLE_NAME								AS ROLENAME,
+				ROLE.ROLE_KEY								AS ROLEKEY
+		FROM SYS_USER_ROLE AS UR
+		INNER JOIN SYS_ROLE AS ROLE ON ROLE.ID = UR.ROLE_ID
+		WHERE UR.USER_ID =#{id}
+	</select>
+	
+	<!-- 根据资源id获取权限 -->
+	<select id="selectRoleByResId" resultType="String" parameterType="String">
+		SELECT 
+			SR.ROLE_KEY      		AS ROLEKEY
+		FROM SYS_ROLE AS SR
+		INNER JOIN SYS_ROLE_RES AS SRR ON SRR.ROLE_ID = SR.ID
+		WHERE SRR.RES_ID = #{resId}
+	</select>
+	
+	<!-- 根据codeName 和 组织id 获取code的序列值 -->
+	<select id="selectNextNoByCodeNameAndOrgId" resultType="String" parameterType="Map" statementType="CALLABLE">
+		select _nextval_by_orgid(#{codeName},#{orgId})
+	</select>
+	
+	<!-- 根据codeName获取code的序列值 -->
+	<select id="selectNextNoByCodeName" resultType="String" parameterType="String" statementType="CALLABLE">
+		select _nextval(#{codeName})
+	</select>
+	
+</mapper>

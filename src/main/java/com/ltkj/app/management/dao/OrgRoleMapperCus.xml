@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ltkj.app.management.dao.OrgRoleMapperCus">
+	
+	<!-- 获取组织人员Tree信息 -->
+	<select id="selectOrganizationAndUserTree" resultType="OrgRoleTree" parameterType="String">
+		 SELECT * FROM (
+			  	SELECT 
+					ORG.ID 		    									AS ID,
+					ORG.ORG_NAME           								AS NAME,
+					ORG.PARENT_ID           							AS PID,
+					ORG.ORG_FID           								AS ORGFID,
+					ORG.ORG_TYPE										AS ORGTYPE,
+					ORG.ORG_LEVEL										AS ORGLEVEL
+				 FROM SYS_ORG AS ORG
+				 WHERE ORG.IS_REMOVE = '1' AND ORG_FID LIKE CONCAT('%',#{companyId},'%')
+				UNION 
+				SELECT 
+					ID			 										AS ID,
+					USER_NAME 											AS NAME,
+					ORG_ID 												AS PID,
+					USER_FID           							   		AS ORGFID,
+					'3'	 												AS ORGTYPE,
+					'1'													AS ORGLEVEL
+				FROM SYS_USER
+				WHERE IS_REMOVE = '1' AND IS_SYSTEM ='0' AND USER_FID LIKE CONCAT('%',#{companyId},'%')
+		) AS ORGUSER
+		ORDER BY ORGUSER.ORGTYPE,ORGUSER.ORGLEVEL
+	</select>
+	
+	<!-- 根据组织或用户查询角色 -->
+	<select id="selectRoleListByOrgIdOrUserId" resultType="OrgRoleCus" parameterType="Map">
+		SELECT
+			TLP.ID,
+			TLP.ROLEID,
+			TLP.ROLENAME,
+			TLP.ROLEKEY,
+			TLP.ORGFID,
+			TLP.ORGFNAME, 
+			TLP.ORGTYPE,
+			TLP.ORGLEVEL,
+			INH.ID 	AS NOTINHID,								-- 如果不是null 则有禁用（当前禁用，继承禁用），反之没有禁用
+			CASE 
+				WHEN INH.ID IS NOT NULL THEN '1'              	-- 启用
+				WHEN INH2.ID IS NOT NULL THEN '2'				-- 禁用
+				ELSE '0' 										-- 继承
+			END AS ISINH
+		FROM (
+			<if test="ids!=null and ids.size() > 0">
+			 	SELECT 
+					UR.ID      				    AS ID,
+					ROLE.ID						AS ROLEID,
+					ROLE.ROLE_NAME				AS ROLENAME,
+					ROLE.ROLE_KEY				AS ROLEKEY,
+					ROLE.CREATE_TIME			AS CREATETIME,
+					PT.ORG_FID					AS ORGFID,
+					PT.ORG_FNAME			    AS ORGFNAME, 
+					PT.ORG_TYPE					AS ORGTYPE,
+					PT.ORG_LEVEL				AS ORGLEVEL
+				FROM (
+						SELECT 
+							ORG.ID,
+							ORG.ORG_NAME,
+							ORG.ORG_FID,
+							ORG.ORG_FNAME,
+							ORG.ORG_TYPE,
+							ORG.ORG_LEVEL
+						 FROM SYS_ORG AS ORG
+						 WHERE ORG.ID IN
+				 		 <foreach collection="ids" index="index" item="item" open="(" separator="," close=")">
+						 	#{item}
+						 </foreach>
+				) AS PT
+				INNER JOIN SYS_USER_ROLE AS UR ON UR.USER_ID = PT.ID
+				INNER JOIN SYS_ROLE AS ROLE ON ROLE.ID = UR.ROLE_ID
+				UNION
+			</if>
+				SELECT 
+						UR.ID									   	AS ID,
+						ROLE.ID										AS ROLEID,
+						ROLE.ROLE_NAME								AS ROLENAME,
+						ROLE.ROLE_KEY								AS ROLEKEY,
+						ROLE.CREATE_TIME							AS CREATETIME,
+						CASE 
+							WHEN USER.USER_FID IS NOT NULL THEN USER.USER_FID
+							ELSE ORG.ORG_FID
+						END											AS ORGFID,
+						CASE 
+							WHEN USER.USER_FNAME IS NOT NULL THEN USER.USER_FNAME
+							ELSE ORG.ORG_FNAME
+						END											AS ORGFNAME,
+						'3'											AS ORGTYPE,
+						'1'											AS ORGLEVEL
+				 FROM SYS_USER_ROLE AS UR
+				 INNER JOIN SYS_ROLE AS ROLE ON ROLE.ID = UR.ROLE_ID
+				 LEFT JOIN SYS_USER AS USER ON USER.ID = UR.USER_ID				-- 用户信息
+ 				 LEFT JOIN SYS_ORG AS ORG ON ORG.ID = UR.USER_ID				-- 组织信息
+				 WHERE UR.USER_ID =#{id}
+		) AS TLP
+		LEFT JOIN SYS_NOT_INH AS INH ON INH.USER_ROLE_ID = TLP.ID AND INH.SET_ORG_ID = #{id}
+		LEFT JOIN SYS_NOT_INH AS INH2 ON INH2.USER_ROLE_ID = TLP.ID AND INH2.SET_ORG_ID NOT IN (#{id}) AND LOCATE(INH2.SET_ORG_ID,#{fid})>0
+		ORDER BY TLP.ORGTYPE,TLP.ORGLEVEL,TLP.CREATETIME
+	</select>
+	
+	<!-- 根据指定条件获取角色信息 -->
+	<select id="selectRoleList" resultType="RoleCus" parameterType="OrgRoleParam">
+		 SELECT 
+			ID									AS ID,
+			ROLE_NAME							AS ROLENAME,
+			ROLE_KEY							AS ROLEKEY,
+			COMMENTS							AS COMMENTS
+		 FROM SYS_ROLE
+		 WHERE COMPANY_ID=#{companyId}
+	 	<if test="roleIds!=null and roleIds.size() > 0">
+	 		ID NOT IN
+	 		<foreach collection="roleIds" index="index" item="item" open="(" separator="," close=")">
+			 	#{item}
+			</foreach>
+	 	</if>
+	 	<if test=" search !=null and search !='' and search !='undefined' ">
+			AND (ROLE_NAME LIKE CONCAT('%',#{search},'%') OR ROLE_KEY LIKE CONCAT('%',#{search},'%') )
+		</if>
+	</select>
+	
+	<!-- 删除当前节点角色对应的子节点禁用继承角色 -->
+	<delete id="removeNotInhByOrgFid"  parameterType="Map">
+		DELETE FROM SYS_NOT_INH
+		WHERE USER_ROLE_ID = #{userRoleId}
+		AND SET_ORG_FID LIKE CONCAT('%',#{orgFid},'%')
+	</delete>
+	
+</mapper>

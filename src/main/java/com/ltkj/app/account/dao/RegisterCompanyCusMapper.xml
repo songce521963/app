@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ltkj.app.account.dao.RegisterCompanyCusMapper">
+
+	<!-- 公司名称check -->
+	<select id="selectCompanyNameCount" resultType="int"
+		parameterType="CompanyCus">
+		SELECT
+		COUNT(1)
+		FROM SYS_COMPANY AS SC
+		WHERE SC.COMPANY_NAME = #{fieldValue}
+	</select>
+
+	<!-- 郵箱地址check -->
+	<select id="selectEmailCount" resultType="int" parameterType="UserCus">
+		SELECT
+		COUNT(1)
+		FROM SYS_USER AS SU
+		WHERE EMAIL = #{fieldValue}
+	</select>
+
+	<!-- 公司英文简称check -->
+<!-- 	<select id="selectShortNameECount" resultType="int" -->
+<!-- 		parameterType="CompanyCus"> -->
+<!-- 		SELECT -->
+<!-- 		COUNT(1) -->
+<!-- 		FROM SYS_COMPANY AS SC -->
+<!-- 		WHERE SC.Short_Name_E = #{fieldValue} -->
+<!-- 	</select> -->
+
+	<!-- Pre check -->
+	<select id="selectPreCount" resultType="int"
+		parameterType="Sequence">
+		SELECT
+		COUNT(*)
+		FROM TB_SEQUENCE TS
+		WHERE TS.PRE =#{pre} AND TS.NAME=#{name}
+	</select>
+</mapper>

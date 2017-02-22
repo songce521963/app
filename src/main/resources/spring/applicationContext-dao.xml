@@ -1,0 +1,40 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+	<!-- 加载db.properties文件中的内容，db.properties文件中key命名要有一定的特殊规则 -->
+	<context:property-placeholder location="classpath:db.properties" />
+	
+	<!-- 配置数据源 ，dbcp -->
+	<bean name="dataSource" class="com.alibaba.druid.pool.DruidDataSource" 
+		destroy-method="close"
+		p:driverClassName="${jdbc.driver}"
+		p:url="${jdbc.url}"
+		p:username="${jdbc.username}"
+		p:password="${jdbc.password}"
+		p:initialSize="${jdbc.initialSize}"
+		p:minIdle="${jdbc.minIdle}"
+		p:maxActive="${jdbc.maxActive}"
+		p:maxWait="${jdbc.maxWait}" 
+		p:timeBetweenEvictionRunsMillis="${jdbc.timeBetweenEvictionRunsMillis}" 
+		p:minEvictableIdleTimeMillis="${jdbc.minEvictableIdleTimeMillis}" />
+	
+	<!-- sqlSessionFactory -->
+	<bean id="sqlSessionFactory" class="com.ltkj.core.PackagesSqlSessionFactoryBean"
+	  	p:dataSource-ref="dataSource" 
+	  	p:configLocation="classpath:mybatis/sqlMapConfig.xml" 
+	  	p:mapperLocations="classpath:com/ltkj/app/*/dao/*.xml"
+	  	p:typeAliasesPackage="com.ltkj.app.*.model"/>
+	
+	<!-- mapper扫描器 -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer" 
+		p:basePackage="com.ltkj.app.**.dao" 
+		p:sqlSessionFactoryBeanName="sqlSessionFactory"/>
+</beans>

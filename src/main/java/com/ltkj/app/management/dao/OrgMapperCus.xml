@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ltkj.app.management.dao.OrgMapperCus">
+	
+	<!-- 获取组织Tree信息 -->
+	<select id="selectOrganizationalTree" resultType="OrgTree" parameterType="Map">
+		  SELECT 
+			ORG.ID 		    									AS ID,
+			ORG.ORG_NAME           								AS NAME,
+			ORG.PARENT_ID           							AS PID,
+			ORG.ORG_TYPE										AS ORGTYPE,
+			ORG.ORG_FID											AS ORGFID,
+			ORG.ORG_FNAME										AS ORGFNAME,
+			ORG.COMMENTS										AS COMMENTS,
+			ORG2.ORG_NAME										AS PARENTNAME
+		 FROM SYS_ORG AS ORG
+		 LEFT JOIN SYS_ORG AS ORG2 ON ORG2.ID = ORG.PARENT_ID AND ORG2.IS_REMOVE = '1'
+		 WHERE ORG.IS_REMOVE = '1' AND ORG.ORG_FID LIKE CONCAT('%',#{companyId},'%')
+		<if test=" orgType!=null ">
+		 	AND ORG.ORG_TYPE != #{orgType}
+		</if>
+		<if test=" orgFid!=null ">
+		 	AND ORG.ORG_FID LIKE CONCAT('%',#{orgFid},'%')
+		</if>
+		 ORDER BY ORG.ORG_TYPE,ORG.ORG_LEVEL
+	</select>
+	
+	<!-- 获取组织结构Tree  （组织移动用） -->
+		<select id="selectOrganizationalTreeNotOrgFid" resultType="OrgTree" parameterType="Map">
+		  SELECT 
+			ORG.ID 		    									AS ID,
+			ORG.ORG_NAME           								AS NAME,
+			ORG.PARENT_ID           							AS PID,
+			ORG.ORG_TYPE										AS ORGTYPE,
+			ORG.ORG_FID											AS ORGFID,
+			ORG.ORG_FNAME										AS ORGFNAME,
+			ORG.COMMENTS										AS COMMENTS,
+			ORG2.ORG_NAME										AS PARENTNAME
+		 FROM SYS_ORG AS ORG
+		 LEFT JOIN SYS_ORG AS ORG2 ON ORG2.ID = ORG.PARENT_ID AND ORG2.IS_REMOVE = '1'
+		 WHERE 
+		 	ORG.IS_REMOVE = '1' AND ORG.ORG_FID  LIKE CONCAT('%',#{companyId},'%')
+		 	AND ORG.ORG_TYPE != #{orgType}
+		 	AND ORG.ORG_FID NOT LIKE CONCAT('%',#{orgFid},'%')
+		 ORDER BY ORG.ORG_TYPE,ORG.ORG_LEVEL
+	</select>
+	
+	<!-- 获取用户信息List -->
+	<select id="selectUserInfoByOrgFid" resultType="UserCus" parameterType="Map">
+		 SELECT 
+		 	ID 		    						AS  ID,
+			USER_CODE 							AS  USERCODE, 
+			USER_NAME							AS  USERNAME,
+			USER_PASSWORD						AS  USERPASSWORD,
+			ORG_NAME							AS  ORGNAME,
+			USER_FNAME							AS  USERFNAME,
+			PHONE								AS  PHONE,
+			EMAIL								AS  EMAIL,
+			CARD_ID								AS	CARDID,
+			ALPPHA_CD							AS  ALPPHACD,
+			NAME_ENG							AS  NAMEENG,
+			SEX									AS  SEX,
+			AGE									AS  AGE,
+			WORK_YEARS							AS  WORKYEARS,
+			PHONE_2								AS  PHONE2,
+			MSM_1								AS  MSM1,
+			MSM_2								AS  MSM2
+		FROM SYS_USER
+		WHERE USER_FID LIKE CONCAT('%',#{orgFid},'%')
+		<if test=" search !=null and search !='' and search !='undefined' ">
+			AND (USER_FNAME LIKE CONCAT('%',#{search},'%') OR USER_CODE LIKE CONCAT('%',#{search},'%') )
+		</if>
+		AND IS_REMOVE = '1' AND IS_SYSTEM ='0'
+		ORDER BY CREATE_TIME DESC
+	</select>
+	
+	<!--  获取主键ID -->
+	<select id="getUUID" resultType="String">
+		SELECT UUID()
+	</select>
+	
+	<!-- 查询同级的个数 -->
+	<select id="getChildCountByParentId" resultType="Integer" parameterType="Map">
+		 SELECT 
+			COUNT(1)
+		 FROM SYS_ORG 
+		 WHERE PARENT_ID = #{parentId}
+		 AND ORG_TYPE = #{orgType}
+	</select>
+	
+	<!-- 删除组织信息 -->
+	<update id="removeOrganizationalByOrgFid" parameterType="String">
+		 UPDATE SYS_ORG SET IS_REMOVE = '0'
+		 WHERE ORG_FID LIKE CONCAT('%',#{orgFId},'%')
+	</update>
+	
+	<!-- 删除组织信息时，删除人员信息 -->
+	<update id="removeUserByOrgFid" parameterType="String">
+		 UPDATE SYS_USER SET IS_REMOVE = '0'
+		 WHERE USER_FID LIKE CONCAT('%',#{orgFId},'%')
+	</update>
+	
+	<!-- 删除组织人员和角色的信息 -->
+	<update id="removeUserRoleByOrgFid" parameterType="String">
+		DELETE FROM SYS_USER_ROLE
+		WHERE EXISTS (
+			SELECT 1 FROM (
+				SELECT UR.ID FROM (
+				 		SELECT ID,ORG_FID AS ORG_FID FROM SYS_ORG WHERE ORG_FID LIKE CONCAT('%',#{orgFId},'%')
+						UNION 
+						SELECT ID,USER_FID AS ORG_FID FROM SYS_USER WHERE USER_FID LIKE CONCAT('%',#{orgFId},'%')
+				 	) AS ORGID
+				 	INNER JOIN SYS_USER_ROLE AS UR ON UR.USER_ID = ORGID.ID
+			) AS ORGID
+			WHERE ORGID.ID=SYS_USER_ROLE.ID
+		)
+	</update>
+	
+	<!-- 删除人员信息 -->
+	<update id="removeUserByIds" parameterType="java.util.List">
+		 UPDATE SYS_USER SET IS_REMOVE = '0'
+		 WHERE ID IN  
+		 <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+		 	#{item}
+		 </foreach>
+	</update>
+	
+	<!-- 删除人员角色信息 -->
+	<delete id="deleteUserRoleByUserId" parameterType="java.util.List">
+		 DELETE FROM SYS_USER_ROLE
+		 WHERE USER_ID IN  
+		 <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+		 	#{item}
+		 </foreach>
+	</delete>
+	
+	<!-- 根据id获取组织的子组织 -->
+	<select id="selectOrgChildByOrgFid" resultType="Organizational" parameterType="String">
+		 SELECT 
+		 	ID        AS ID,
+			ORG_FID   AS ORGFID,
+			ORG_FNAME AS ORGFNAME
+		 FROM SYS_ORG 
+		 WHERE ORG_FID LIKE CONCAT('%',#{orgFId},'%')
+		 AND IS_REMOVE = '1'
+	</select>
+	
+	<!-- 根据id获取人员的子组织 -->
+	<select id="selectUserChildByOrgFid" resultType="User" parameterType="String">
+		 SELECT 
+		 	ID         	AS ID,
+			USER_FID   	AS USERFID,
+			ORG_ID   	AS ORGID,
+			USER_FNAME 	AS USERFNAME
+		 FROM SYS_USER 
+		 WHERE USER_FID LIKE CONCAT('%',#{orgFId},'%')
+		 AND IS_REMOVE = '1'
+	</select>
+	
+	<!-- 根据组织名称，获取当前节点组织的个数 -->
+	<select id="selectDepCountByDepName" resultType="int" parameterType="OrgCus">
+		 SELECT 
+		 	COUNT(1)
+		 FROM SYS_ORG AS ORG 
+		 WHERE ORG.PARENT_ID = #{parentId}
+		 AND ORG.ORG_NAME = #{fieldValue}
+		 AND ORG.ORG_FID LIKE CONCAT('%',#{companyId},'%')
+		 AND ORG.IS_REMOVE = '1'
+	</select>
+	
+	<!-- 根据人员身份证号，获取当前人员个数 -->
+	<select id="selectUserCountByCardId" resultType="int" parameterType="UserCus">
+		SELECT 
+		 	COUNT(1)
+		FROM SYS_USER AS USER
+		WHERE CARD_ID = #{fieldValue} 
+		AND USER.USER_FID LIKE CONCAT('%',#{companyId},'%')
+		AND USER.IS_REMOVE = '1'
+	</select>
+	
+	
+</mapper>

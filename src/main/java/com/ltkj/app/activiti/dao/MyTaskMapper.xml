@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ltkj.app.activiti.dao.MyTaskMapper">
+	
+	<!-- 查询部署流程定义 -->
+	<select id="selectTaskList" resultType="TaskCus" parameterType="TaskCus">
+		SELECT 
+			RT.ID_    									AS ID,
+			RT.NAME_  									AS NAME,
+			RT.CREATE_TIME_								AS CREATETIME,
+			RT.ASSIGNEE_								AS ASSIGNEE,
+			SU.USER_NAME								AS ASSIGNEENAME,
+			ARD.NAME_									AS DEPNAME
+		FROM 
+		ACT_RU_TASK AS RT
+		INNER JOIN SYS_USER AS SU ON SU.ID=RT.ASSIGNEE_
+		INNER JOIN ACT_RE_PROCDEF AS ACP ON ACP.ID_ =  RT.PROC_DEF_ID_
+		INNER JOIN ACT_RE_DEPLOYMENT AS ARD ON ARD.ID_ = ACP.DEPLOYMENT_ID_
+		<where>
+			<if test=" search!=null and search !='undefined' ">
+				(
+					RT.ID_ LIKE CONCAT('%',#{search},'%') OR 
+					RT.NAME_ LIKE CONCAT('%',#{search},'%') OR
+					ARD.NAME_ LIKE CONCAT('%',#{search},'%') OR
+					SU.USER_NAME LIKE CONCAT('%',#{search},'%')
+				)
+			</if>
+		</where>
+		ORDER BY RT.CREATE_TIME_
+	</select>
+	
+</mapper>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ltkj.app.master.dao.MastCusMapper">
+	
+	<!-- 查询基础数据列表-->
+	<select id="selectMasterDataList" resultType="MastCus" parameterType="MastCus">
+				SELECT 
+			TM.UUID             	AS UUID,
+			TM.COMPANY_ID           AS COMPANYID,
+			TM.CATGORY_ID1          AS CATGORYID1,
+			TM.CATEGORY             AS CATEGORY,
+			TM.KEY_CD           	AS KEYCD,
+			TM.KEY_VALUE       		AS KEYVALUE,
+			TM.DISP_ORDER           AS DISPORDER,
+			IF(LENGTH(TM.DESCRIPTION)>138, CONCAT(LEFT(TM.DESCRIPTION,43),'...'),TM.DESCRIPTION) AS DESCRIPTIONDIS,
+			TM.DESCRIPTION AS DESCRIPTION
+			FROM T_MASTER AS TM
+		<where>
+			IS_ACTIVE='1' AND TM.COMPANY_ID = #{companyId}
+			<if test=" search!=null and search !='undefined' ">
+			AND	(
+					TM.CATEGORY LIKE CONCAT('%',#{search},'%') OR 
+					TM.KEY_CD LIKE CONCAT('%',#{search},'%') OR
+					TM.KEY_VALUE LIKE CONCAT('%',#{search},'%') OR 
+					TM.DISP_ORDER LIKE CONCAT('%',#{search},'%')
+				)
+			</if>
+		</where>
+		ORDER BY TM.CATGORY_ID1,TM.DISP_ORDER
+	</select>
+	
+	<!-- 删除基础数据信息(逻辑删除) -->
+	<update id="deleteMasterDataByUuids" parameterType="java.util.List">
+		UPDATE T_MASTER SET IS_ACTIVE='0'
+		WHERE UUID IN
+		 <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+		 	#{item}
+		 </foreach>
+	</update>
+	
+	<!-- Code值check	 -->			
+<!-- 	<select id="selectCodeCountByCode" resultType="int" parameterType="MastCus">			 -->
+<!-- 		SELECT 		 -->
+<!-- 		 	COUNT(1)	 -->
+<!-- 		FROM T_MASTER AS TM		 -->
+<!-- 		WHERE KEY_CD = #{fieldValue} 				 -->
+<!-- 	</select>			 -->
+	
+	
+</mapper>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ltkj.app.company.dao.CompanyMapperCus">
+		
+	<!-- 根据公司工商注册代码，获取当前公司个数 -->
+	<select id="searchRegisterCode" resultType="int" parameterType="CompanyCus">
+		SELECT 
+		 	COUNT(1)
+		FROM SYS_COMPANY 
+		WHERE REGISTER_CODE = #{fieldValue}
+	</select>
+		
+	<!-- 根据公司uuid查询相关org信息 -->
+	<select id="selectOrgInfoByCompanyId" resultType="Organizational" parameterType="String">
+		 SELECT 
+		 	ID        		AS 		ID,
+			ORG_NAME   		AS 		ORGNAME,
+			ORG_FNAME 		AS 		ORGFNAME
+		 FROM SYS_ORG 
+		 WHERE SYS_ORG.ORG_FID LIKE CONCAT('%',#{uuid},'%')
+	</select>	
+	
+	<!-- 根据公司uuid查询相关user信息 -->
+	<select id="selectUserInfoByCompanyId" resultType="User" parameterType="String">
+		 SELECT 
+		 	ID        		AS 		ID,
+		 	ORG_ID			AS		ORGID,
+			USER_NAME   	AS 		USERNAME,
+			USER_FNAME 		AS 		USERFNAME
+		 FROM SYS_USER 
+		 WHERE SYS_USER.USER_FID LIKE CONCAT('%',#{uuid},'%')
+	</select>	
+		
+
+</mapper>

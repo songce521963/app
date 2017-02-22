@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ltkj.app.management.dao.RolePersonMapperCus">
+
+	<!-- 根据角色ID查询对应的人员 -->
+	<select id="selectPersonListByRoleId" resultType="UserCus" parameterType="RolePersonParam" >
+		 SELECT 
+			SU.ID									AS ID,
+			SU.USER_CODE                  			AS USERCODE,
+			SU.USER_NAME                  			AS USERNAME,
+			SU.ORG_NAME								AS ORGNAME,
+			SUR.ID                                  AS USERROLEID
+		 FROM SYS_USER_ROLE AS SUR
+		 INNER JOIN SYS_USER AS SU ON SU.ID = SUR.USER_ID
+		 WHERE SUR.ROLE_ID = #{roleId}
+		 <if test=" search !=null and search !='' and search !='undefined' ">
+			AND (SU.USER_FNAME LIKE CONCAT('%',#{search},'%') OR SU.USER_CODE LIKE CONCAT('%',#{search},'%') OR SU.ORG_NAME LIKE CONCAT('%',#{search},'%'))
+		</if>
+	</select>
+	
+	<!-- 查询所有人员，但除了角色对应已有的人员 -->
+	<select id="selectPersonListByNotRoleId" resultType="UserCus" parameterType="RolePersonParam" >
+		 SELECT 
+			SUSER.ID									AS ID,
+			SUSER.USER_CODE                  			AS USERCODE,
+			SUSER.USER_NAME                  			AS USERNAME,
+			SUSER.ORG_NAME								AS ORGNAME
+		 FROM SYS_USER AS SUSER
+		 WHERE NOT EXISTS (
+			 SELECT 
+				SU.ID												AS ID
+			 FROM SYS_USER_ROLE AS SUR
+			 INNER JOIN SYS_USER AS SU ON SU.ID = SUR.USER_ID
+			 WHERE SU.ID = SUSER.ID AND SUR.ROLE_ID = #{roleId} AND SU.IS_SYSTEM='0' AND SU.IS_REMOVE='1'
+		 )
+		 AND SUSER.IS_SYSTEM='0' AND SUSER.IS_REMOVE='1'
+		 AND SUSER.USER_FID LIKE CONCAT('%',#{companyId},'%')
+		 <if test=" search !=null and search !='' and search !='undefined' ">
+			AND (SUSER.USER_FNAME LIKE CONCAT('%',#{search},'%') OR SUSER.USER_CODE LIKE CONCAT('%',#{search},'%') OR SUSER.ORG_NAME LIKE CONCAT('%',#{search},'%'))
+		 </if>
+	</select>
+
+	<!-- 按角色分配权限 -->
+	<insert id="setRolePerson" parameterType="RolePersonParam" >
+		INSERT INTO SYS_USER_ROLE(USER_ID,ROLE_ID)
+		<foreach collection="userRoles" item="item" index="index"  separator="UNION ALL" > 
+			SELECT
+			 	#{item.userId},#{item.roleId}
+			FROM DUAL
+		</foreach>
+	</insert>
+	
+	<!-- 删除权限 -->
+	<delete id="deleteRolePersonByRolePerId" parameterType="java.util.List">
+		 DELETE FROM SYS_USER_ROLE
+		 WHERE ID IN  
+		 <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+		 	#{item}
+		 </foreach>
+	</delete>
+
+</mapper>

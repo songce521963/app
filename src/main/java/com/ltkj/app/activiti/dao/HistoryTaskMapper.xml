@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ltkj.app.activiti.dao.HistoryTaskMapper">
+	
+	<!-- 查询部署流程定义 -->
+	<select id="selectHistoryTaskList" resultType="HiTaskinstCus" parameterType="HiTaskinstCus">
+		SELECT 
+			AHT.ID_    		 					AS ID,
+			AHT.NAME_							AS NAME,
+			AHT.ASSIGNEE_						AS ASSIGNEE,
+			AHT.END_TIME_						AS ENDTIME,
+			AHT.DELETE_REASON_					AS DELETEREASON,
+			ARD.NAME_							AS DEPNAME,
+			SU.USER_NAME                  		AS ASSIGNEENAME,
+			RIGHT(AHP.BUSINESS_KEY_, LENGTH(AHP.BUSINESS_KEY_)-LOCATE('.',AHP.BUSINESS_KEY_))   AS BUSINESSID
+		FROM ACT_HI_TASKINST AS AHT
+		INNER JOIN ACT_RE_PROCDEF AS ARP ON ARP.ID_ = AHT.PROC_DEF_ID_
+		INNER JOIN ACT_RE_DEPLOYMENT AS ARD ON ARD.ID_ = ARP.DEPLOYMENT_ID_
+		INNER JOIN SYS_USER AS SU ON SU.ID = AHT.ASSIGNEE_
+		INNER JOIN ACT_HI_PROCINST AS AHP ON AHP.ID_ = AHT.PROC_INST_ID_
+		<where>
+			 AHT.ASSIGNEE_ = #{assignee}
+			 AND AHT.END_TIME_ IS NOT NULL
+			<if test=" search!=null and search !='undefined' ">
+			 AND (
+					AHT.ID_ LIKE CONCAT('%',#{search},'%') OR 
+					AHT.NAME_ LIKE CONCAT('%',#{search},'%') OR
+					SU.USER_NAME LIKE CONCAT('%',#{search},'%') OR
+					ARD.NAME_ LIKE CONCAT('%',#{search},'%')
+				)
+			</if>
+		</where>
+		ORDER BY AHT.END_TIME_
+	</select>
+	
+</mapper>

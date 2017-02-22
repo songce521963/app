@@ -1,0 +1,48 @@
+#roleListTbl input[type="checkbox"]{
+	margin-top: 3px;
+}
+
+#roleListTbl .th-inner input[type="checkbox"]{
+	margin-top: 0px;
+}
+
+.ztree li span.button.com_ico_open{
+	background-position:-210px -66px;
+}
+.ztree li span.button.com_ico_close{
+	background-position:-227px -66px;
+}
+.ztree li span.button.com_ico_docu{
+	background-position:-210px -66px;
+}
+
+.ztree li span.button.dep_ico_close{
+	background-position:-227px -1px;
+}
+.ztree li span.button.dep_ico_open{
+	background-position:-210px -1px;
+}
+
+.ztree li span.button.dep_ico_docu{
+	background-position:-227px -1px;
+}
+
+.ztree li span.button.pos_ico_open{
+	background-position:-209px -85px;
+}
+.ztree li span.button.pos_ico_close{
+	background-position:-227px -85px;
+}
+.ztree li span.button.pos_ico_docu{
+	background-position:-227px -85px;
+}
+
+.ztree li span.button.per_ico_open{
+	background-position:-209px -43px;
+}
+.ztree li span.button.per_ico_close{
+	background-position:-227px -43px;
+}
+.ztree li span.button.per_ico_docu{
+	background-position:-227px -43px;
+}

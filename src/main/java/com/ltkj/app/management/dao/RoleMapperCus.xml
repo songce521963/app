@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ltkj.app.management.dao.RoleMapperCus">
+
+	<!--  获取主键ID -->
+	<select id="getUUID" resultType="String">
+		SELECT UUID()
+	</select>
+	
+	<!-- 获取所有角色信息 -->
+	<select id="selectRoleListAll" resultType="RoleCus" parameterType="RoleCus">
+		 SELECT 
+			ID									AS ID,
+			ROLE_NAME							AS ROLENAME,
+			ROLE_KEY							AS ROLEKEY,
+			COMMENTS							AS COMMENTS
+		 FROM SYS_ROLE
+		 WHERE COMPANY_ID = #{companyId}
+		 ORDER BY CREATE_TIME DESC
+	</select>
+	
+	<resultMap type="ResCus" id="resourceMap">
+		<id column="ID" property="id"/>
+		<id column="ROLENAME" property="roleName"/>
+		<result column="RESFNAME" property="resFname"/>
+		<result column="RESTYPE" property="resType"/>
+		
+		<!-- 一对多的关系 -->
+		<!-- property: 指的是集合属性的值, ofType：指的是集合中元素的类型 -->
+		<collection property="res" ofType="com.ltkj.app.common.model.Resources">
+			<id column="CID" property="id"/>
+			<result column="CNAME" property="resName"/>
+		</collection>
+	</resultMap>
+	
+	<!-- 根据角色获取角色资源 -->
+	<select id="selectResourcesListByRoleId" resultMap="resourceMap" parameterType="Map">
+		SELECT 
+		 	RES.ID								AS ID,
+			RES.RESFNAME						AS RESFNAME,
+			RES.RESTYPE							AS RESTYPE,
+			ROLE.ROLE_NAME            			AS ROLENAME,
+			RES2.ID		               			AS CID,
+			RES2.RESNAME               			AS CNAME
+		FROM (
+			SELECT 
+				 	RES.ID								AS ID,
+					RES.RES_FNAME						AS RESFNAME,
+					RES.RES_TYPE						AS RESTYPE,
+					RES.RES_LEVEL						AS RESLEVEL,
+					ROLE_RES.ROLE_ID					AS ROLEID,
+					RES.RES_NAME						AS RESNAME,
+					RES.PARENT_ID						AS PARENTID
+				 FROM SYS_ROLE_RES AS ROLE_RES
+				 INNER JOIN SYS_RESOURCES AS RES ON RES.ID = ROLE_RES.RES_ID
+				 WHERE RES.RES_TYPE IN ('2','3') 
+				 <if test="roleId != 'undefined' and roleId != null and roleId != '' ">
+		 			AND ROLE_RES.ROLE_ID = #{roleId}
+		 		 </if>
+		) AS RES 
+		INNER JOIN SYS_ROLE AS ROLE ON ROLE.ID=RES.ROLEID
+		LEFT JOIN (
+			SELECT 
+				 	RES.ID								AS ID,
+					RES.RES_FNAME						AS RESFNAME,
+					RES.RES_TYPE						AS RESTYPE,
+					RES.RES_LEVEL						AS RESLEVEL,
+					ROLE_RES.ROLE_ID					AS ROLEID,
+					RES.RES_NAME						AS RESNAME,
+					RES.PARENT_ID						AS PARENTID
+				 FROM SYS_ROLE_RES AS ROLE_RES
+				 INNER JOIN SYS_RESOURCES AS RES ON RES.ID = ROLE_RES.RES_ID
+				 WHERE RES.RES_TYPE IN ('2','3') 
+				 <if test="roleId != 'undefined' and roleId != null and roleId != '' ">
+		 			AND ROLE_RES.ROLE_ID = #{roleId}
+		 		 </if>
+		) AS RES2 ON RES2.PARENTID = RES.ID
+		WHERE RES.RESTYPE ='2' AND ROLE.COMPANY_ID=#{companyId}
+		 <if test="search != 'undefined' and search != null and search != '' ">
+		 	AND (RES.RESFNAME LIKE CONCAT('%',#{search},'%') OR ROLE.ROLE_NAME LIKE CONCAT('%',#{search},'%') )
+		 </if>
+		 ORDER BY ROLE.ROLE_NAME,RES.RESLEVEL,RES2.RESLEVEL
+	</select>
+	
+	<!-- 根据角色key获取角色个数 -->
+	<select id="selectRoleIdByRoleKey" resultType="Integer" parameterType="Map">
+		 SELECT
+		 	count(1)
+		 FROM SYS_ROLE
+		 WHERE ROLE_KEY = #{roleKey} AND #{companyId}
+	</select>
+	
+	<!-- 获取资源Tree信息 -->
+	<select id="selectResourcesTree" resultType="ResTree" parameterType="String">
+		 SELECT 
+			RES.ID 		    									AS ID,
+			RES.RES_NAME           								AS NAME,
+			RES.PARENT_ID           							AS PID,
+			CASE 
+				 WHEN RR.ID IS NULL THEN 'FALSE' 
+				 ELSE 'TRUE'
+			END 												AS CHECKED,
+			CASE WHEN RES.RES_TYPE='2' THEN 'FALSE'
+			END AS OPEN
+		 FROM SYS_RESOURCES AS RES
+		 LEFT JOIN SYS_ROLE_RES AS RR ON RR.ROLE_ID=#{roleId} AND RR.RES_ID=RES.ID
+		 WHERE RES_TYPE != '0'
+		 ORDER BY RES.RES_TYPE,RES.RES_LEVEL
+	</select>
+	
+	<!-- 删除之前的角色资源数据 -->	
+	<delete id="deleteRoleResByRoleId" parameterType="String">
+		DELETE FROM SYS_ROLE_RES WHERE ROLE_ID=#{roleId}
+	</delete>
+	
+</mapper>

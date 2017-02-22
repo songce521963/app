@@ -1,0 +1,139 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
+
+    <!-- 扫描@Controller注解 -->
+    <context:component-scan base-package="com.ltkj.app.*.controller">
+    	<context:include-filter type="annotation"
+        		expression="org.springframework.stereotype.Controller" />
+    </context:component-scan>
+  
+  	<!--启动对@AspectJ注解的支持,通知spring使用cglib而不是jdk的来生成代理方法 AOP可以拦截到Controller-->  
+    <aop:aspectj-autoproxy proxy-target-class="true" />  
+  
+	<!-- 静态资源解析
+		包括 ：js、css、img、..
+	 -->
+	<!-- <mvc:resources mapping="/resources/**" location="/resources/"/> -->
+	
+	<!-- 解析没有被springmvc映射的资源 -->
+	<mvc:default-servlet-handler/>
+	
+	<!-- mvc:annotation-driven默认加载很多的参数绑定方法，
+		比如json转换解析器就默认加载了，如果使用mvc:annotation-driven不用配置上边的RequestMappingHandlerMapping和RequestMappingHandlerAdapter
+		实际开发时使用mvc:annotation-driven
+	 -->
+	<mvc:annotation-driven content-negotiation-manager="cnManager" conversion-service="myConversionService">
+		<!-- 返回字符串  显示中文-->
+		<mvc:message-converters register-defaults="true">
+            <bean class="org.springframework.http.converter.StringHttpMessageConverter">
+                <constructor-arg name="defaultCharset" value="UTF-8"/>
+            </bean>
+        </mvc:message-converters>
+        
+        <!-- 自定义解析器 -->
+       <!--  <mvc:argument-resolvers>
+        	<bean class="com.ltkj.core.handler.MyUserMethodArgumentResolver"></bean>
+    	</mvc:argument-resolvers> -->
+	</mvc:annotation-driven>
+	
+	<!-- 自定义参数绑定 -->
+	<bean id="myConversionService" class="org.springframework.format.support.FormattingConversionServiceFactoryBean">
+		<!-- 转换器 -->
+		<property name="converters">
+			<list>
+				<!-- 日期类型转换 -->
+				<bean class="com.ltkj.core.converter.DateConverter"/>
+			</list>
+		</property>
+	</bean>
+    
+	<!-- 视图解析器 -->
+    <bean class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">  
+        <property name="viewResolvers">
+        	<list>
+                <bean class="org.springframework.web.servlet.view.BeanNameViewResolver">
+                    <property name="order" value="1"/>
+                </bean>
+				<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+                    <property name="prefix" value="/WEB-INF/views/"/>
+                    <property name="suffix" value=".jsp"/>
+                    <property name="order" value="2"/>
+                </bean>
+        	</list>
+        </property> 
+    </bean>  
+	
+	<!--避免ajax请求出现406错误 , 解析request的Accept内容，决定返回什么类型-->
+	<bean id="cnManager" class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
+	       <!-- 扩展名至mimeType的映射,即 /user.json => application/json --> 
+	       <property name="favorPathExtension" value="false"/>
+	       <!-- 用于开启 /userinfo/123?format=json 的支持 --> 
+	       <property name="favorParameter" value="false"/>
+	       <!-- 是否忽略Accept Header --> 
+	       <property name="ignoreAcceptHeader" value="false"/>
+	</bean>
+	
+	<!-- 校验器 -->
+	<!-- <bean id="validator"
+		class="org.springframework.validation.beanvalidation.LocalValidatorFactoryBean">
+		hibernate校验器
+		<property name="providerClass" value="org.hibernate.validator.HibernateValidator" />
+		指定校验使用的资源文件，在文件中配置校验错误信息，如果不指定则默认使用classpath下的ValidationMessages.properties
+		<property name="validationMessageSource" ref="messageSource" />
+	</bean> -->
+	
+	
+	<!-- 校验错误信息配置文件 -->
+	<!-- <bean id="messageSource"
+		class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
+		资源文件名
+		<property name="basenames">   
+       	 <list>    
+            <value>classpath:CustomValidationMessages</value> 
+       	 </list>   
+    	</property>
+		资源文件编码格式
+		<property name="fileEncodings" value="utf-8" />
+		对资源文件内容缓存时间，单位秒
+		<property name="cacheSeconds" value="120" />
+	</bean> -->
+
+	<!-- 文件上传 解决上传文件Token失效的问题 -->
+	<bean id="multipartResolver"  
+   		 class="org.springframework.web.multipart.support.StandardServletMultipartResolver">  
+	</bean>
+	<!-- <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="defaultEncoding">
+			<value>UTF-8</value>
+		</property>
+		<property name="maxUploadSize">
+			<value>32505856</value>上传文件大小限制为31M，31*1024*1024
+		</property>
+		<property name="maxInMemorySize">
+			<value>4096</value>
+		</property>
+	</bean> -->
+	
+	<!-- 全局异常处理器
+		只要实现HandlerExceptionResolver接口就是全局异常处理器
+	 -->
+	<bean class="com.ltkj.core.exception.CustomExceptionResolver"></bean>
+	
+	<!--拦截器 -->
+    <mvc:interceptors>
+		<mvc:interceptor>
+			<mvc:mapping path="/**"/>
+			<bean class="com.ltkj.core.interceptor.PageInterceptor"></bean>
+		</mvc:interceptor>
+		<bean class="com.ltkj.core.interceptor.MenuInterceptor"></bean>
+	</mvc:interceptors> 
+
+</beans>

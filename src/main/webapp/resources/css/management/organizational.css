@@ -1,0 +1,57 @@
+.text-primary{
+	color: #C0C0C0;	
+}
+.treeDiv{
+	border:1px solid gray;
+	-moz-border-radius: 15px;
+    -webkit-border-radius: 15px;
+    border-radius:5px;
+    padding:30px;
+    margin-bottom:20px;
+}
+
+.panel-heading{
+	background: #ffffff;
+	height: 55px;
+}
+#userListTbl input[type="checkbox"]{
+	margin-top: 15px;
+}
+
+#userListTbl .th-inner input[type="checkbox"]{
+	margin-top: 0px;
+}
+
+.ztree li span.button.com_ico_open{
+	background-position:-210px -66px;
+}
+.ztree li span.button.com_ico_close{
+	background-position:-227px -66px;
+}
+.ztree li span.button.com_ico_docu{
+	background-position:-210px -66px;
+}
+
+.ztree li span.button.dep_ico_close{
+	background-position:-227px -1px;
+}
+.ztree li span.button.dep_ico_open{
+	background-position:-210px -1px;
+}
+
+.ztree li span.button.dep_ico_docu{
+	background-position:-227px -1px;
+}
+
+.ztree li span.button.pos_ico_open{
+	background-position:-209px -85px;
+}
+.ztree li span.button.pos_ico_close{
+	background-position:-227px -85px;
+}
+.ztree li span.button.pos_ico_docu{
+	background-position:-227px -85px;
+}
+.fixed-table-toolbar .bars, .fixed-table-toolbar .search, .fixed-table-toolbar .columns{
+	margin-top: -10px;
+}

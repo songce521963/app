@@ -1,0 +1,7 @@
+#roleListTbl > tbody > tr:hover{
+	cursor:pointer;
+}
+.backClick{
+	background-color: #d7e8f0;
+}
+

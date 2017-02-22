@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ltkj.app.attendance.dao.LeaveBillMapperCus">
+	
+	<!-- 获取组织Tree信息 -->
+	<select id="selectLeaveBill" resultType="LeaveBillCus" parameterType="LeaveBillCus">
+		 SELECT
+			LB.ID   					AS ID,
+			LB.LEAVE_TYPE  				AS LEAVETYPE,
+			LB.STATE					AS STATE,
+			LB.DAYS						AS DAYS,
+			LB.FROM_TIME   				AS FROMTIME,
+			LB.END_TIME    				AS ENDTIME,
+			LB.COMMENTS    				AS COMMENTS,
+			LB.USER_ID     				AS USERID,
+			LB.CREATE_USER 				AS CREATEUSER,
+			HM.VALUE       				AS LEAVETYPENAME,
+			HM2.VALUE       			AS STATENAME
+		FROM S_LEAVE_BILL AS LB
+		INNER JOIN M_HASH_MAP AS HM ON HM.TYPE_NAME='LEAVE_BILL' 
+			AND HM.IS_REMOVE='0' AND HM.`KEY` = LB.LEAVE_TYPE 
+		INNER JOIN M_HASH_MAP AS HM2 ON HM2.TYPE_NAME='APPLY_STATE' 
+			AND HM.IS_REMOVE='0' AND HM2.`KEY` = LB.STATE 
+		<where>
+			<if test=" userId !=null and userId !='' ">
+		 		AND LB.USER_ID = #{userId}
+			</if>
+		</where>
+		 ORDER BY LB.CREATE_TIME
+	</select>
+</mapper>
